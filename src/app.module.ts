@@ -9,6 +9,8 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { PostsModule } from './posts/posts.module';
+import { PetitionsModule } from './petitions/petitions.module';
+import { VolunteersModule } from './volunteers/volunteers.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
@@ -32,6 +34,8 @@ import { RolesGuard } from './common/guards/roles.guard';
     AuthModule,
     UsersModule,
     PostsModule,
+    PetitionsModule,
+    VolunteersModule,
   ],
   controllers: [AppController],
   providers: [

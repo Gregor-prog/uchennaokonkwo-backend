@@ -1,6 +1,6 @@
 # API Reference
 
-Complete documentation for the backend REST API. Covers authentication, posts, media management, data shapes, error handling, and frontend integration patterns.
+Complete documentation for the backend REST API. Covers authentication, posts, media management, petitions, volunteers, data shapes, error handling, and frontend integration patterns.
 
 ---
 
@@ -26,14 +26,24 @@ Complete documentation for the backend REST API. Covers authentication, posts, m
    - [DELETE /posts/:id](#85-delete-postsid)
    - [POST /posts/:id/media](#86-post-postsidmedia)
    - [DELETE /posts/:id/media/:mediaId](#87-delete-postsidmediamediaid)
-9. [Data Models](#9-data-models)
-10. [Frontend Integration Guide](#10-frontend-integration-guide)
-    - [Token management](#101-token-management)
-    - [Axios / Fetch setup](#102-axiosfetch-setup)
-    - [Auth flow](#103-auth-flow)
-    - [Uploading images](#104-uploading-images)
-    - [Role-gating UI components](#105-role-gating-ui-components)
-11. [Environment Variables](#11-environment-variables)
+9. [Petitions Endpoints](#9-petitions-endpoints)
+   - [POST /petitions](#91-post-petitions)
+   - [GET /petitions](#92-get-petitions)
+   - [GET /petitions/:id](#93-get-petitionsid)
+   - [DELETE /petitions/:id](#94-delete-petitionsid)
+10. [Volunteers Endpoints](#10-volunteers-endpoints)
+    - [POST /volunteers](#101-post-volunteers)
+    - [GET /volunteers](#102-get-volunteers)
+    - [GET /volunteers/:id](#103-get-volunteersid)
+    - [DELETE /volunteers/:id](#104-delete-volunteersid)
+11. [Data Models](#11-data-models)
+12. [Frontend Integration Guide](#12-frontend-integration-guide)
+    - [Token management](#121-token-management)
+    - [Axios / Fetch setup](#122-axiosfetch-setup)
+    - [Auth flow](#123-auth-flow)
+    - [Uploading images](#124-uploading-images)
+    - [Role-gating UI components](#125-role-gating-ui-components)
+13. [Environment Variables](#13-environment-variables)
 
 ---
 
@@ -92,18 +102,36 @@ Three roles exist. A user can hold multiple roles.
 
 ### Access matrix — Posts
 
-| Action | ADMIN | MEDIA | VOLUNTEER |
-|---|---|---|---|
-| List posts | ✅ | ✅ | ❌ 403 |
-| Get single post | ✅ | ✅ | ❌ 403 |
-| Create post | ✅ | ✅ | ❌ 403 |
-| Update any post | ✅ | ✅ | ❌ 403 |
-| Delete any post | ✅ | ❌ 403 | ❌ 403 |
-| Delete own post | ✅ | ✅ | ❌ 403 |
-| Add media to any post | ✅ | ❌ 403 | ❌ 403 |
-| Add media to own post | ✅ | ✅ | ❌ 403 |
-| Remove media from any post | ✅ | ❌ 403 | ❌ 403 |
-| Remove media from own post | ✅ | ✅ | ❌ 403 |
+| Action | Public | ADMIN | MEDIA | VOLUNTEER |
+|---|---|---|---|---|
+| List posts | ✅ | ✅ | ✅ | ✅ |
+| Get single post | ✅ | ✅ | ✅ | ✅ |
+| Create post | ❌ | ✅ | ✅ | ❌ 403 |
+| Update any post | ❌ | ✅ | ✅ | ❌ 403 |
+| Delete any post | ❌ | ✅ | ❌ 403 | ❌ 403 |
+| Delete own post | ❌ | ✅ | ✅ | ❌ 403 |
+| Add media to any post | ❌ | ✅ | ❌ 403 | ❌ 403 |
+| Add media to own post | ❌ | ✅ | ✅ | ❌ 403 |
+| Remove media from any post | ❌ | ✅ | ❌ 403 | ❌ 403 |
+| Remove media from own post | ❌ | ✅ | ✅ | ❌ 403 |
+
+### Access matrix — Petitions
+
+| Action | Public | ADMIN | MEDIA | VOLUNTEER |
+|---|---|---|---|---|
+| Submit petition | ✅ | ✅ | ✅ | ✅ |
+| List all petitions | ❌ | ✅ | ❌ 403 | ❌ 403 |
+| Get single petition | ❌ | ✅ | ❌ 403 | ❌ 403 |
+| Delete petition | ❌ | ✅ | ❌ 403 | ❌ 403 |
+
+### Access matrix — Volunteers
+
+| Action | Public | ADMIN | MEDIA | VOLUNTEER |
+|---|---|---|---|---|
+| Register as volunteer | ✅ | ✅ | ✅ | ✅ |
+| List all volunteers | ❌ | ✅ | ❌ 403 | ❌ 403 |
+| Get single volunteer | ❌ | ✅ | ❌ 403 | ❌ 403 |
+| Delete volunteer | ❌ | ✅ | ❌ 403 | ❌ 403 |
 
 ---
 
@@ -741,7 +769,252 @@ Empty body.
 
 ---
 
-## 9. Data Models
+---
+
+## 9. Petitions Endpoints
+
+Petitions are townhall-style feedback messages submitted by constituents. Submission is public; viewing and management requires `ADMIN`.
+
+### 9.1 `POST /petitions`
+
+Submits a new petition.
+
+**Auth required:** No
+**Rate limit:** 100 requests / 60 s (global)
+
+#### Request body — `application/json`
+
+| Field | Type | Required | Constraints |
+|---|---|---|---|
+| `topic` | `string` | ✅ | 3–150 characters |
+| `constituentName` | `string` | ✅ | 2–100 characters |
+| `message` | `string` | ✅ | 10–2000 characters |
+
+#### Example request
+
+```json
+{
+  "topic": "Road Infrastructure in Enugu North",
+  "constituentName": "Ada Okonkwo",
+  "message": "The road along Ogui New Layout has been in disrepair for over two years. We request urgent attention."
+}
+```
+
+#### Success response — `201 Created`
+
+```json
+{
+  "id": "e1e2e3...",
+  "topic": "Road Infrastructure in Enugu North",
+  "constituentName": "Ada Okonkwo",
+  "message": "The road along Ogui New Layout has been in disrepair for over two years. We request urgent attention.",
+  "createdAt": "2026-03-19T10:00:00.000Z"
+}
+```
+
+#### Error responses
+
+| Status | When |
+|---|---|
+| `400` | Validation failure |
+
+---
+
+### 9.2 `GET /petitions`
+
+Returns all petitions ordered newest first.
+
+**Auth required:** Yes
+**Roles:** `ADMIN`
+
+#### Success response — `200 OK`
+
+```json
+[
+  {
+    "id": "e1e2e3...",
+    "topic": "Road Infrastructure in Enugu North",
+    "constituentName": "Ada Okonkwo",
+    "message": "...",
+    "createdAt": "2026-03-19T10:00:00.000Z"
+  }
+]
+```
+
+---
+
+### 9.3 `GET /petitions/:id`
+
+Returns a single petition.
+
+**Auth required:** Yes
+**Roles:** `ADMIN`
+
+#### Path parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` (UUID) | Petition ID |
+
+#### Success response — `200 OK`
+
+Single petition object — same shape as items in `GET /petitions`.
+
+#### Error responses
+
+| Status | When |
+|---|---|
+| `404` | Petition not found |
+
+---
+
+### 9.4 `DELETE /petitions/:id`
+
+Permanently deletes a petition.
+
+**Auth required:** Yes
+**Roles:** `ADMIN`
+
+#### Path parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` (UUID) | Petition ID |
+
+#### Success response — `204 No Content`
+
+Empty body.
+
+#### Error responses
+
+| Status | When |
+|---|---|
+| `404` | Petition not found |
+
+---
+
+## 10. Volunteers Endpoints
+
+Volunteers register their interest through a public form. Viewing and management requires `ADMIN`.
+
+### 10.1 `POST /volunteers`
+
+Registers a new volunteer.
+
+**Auth required:** No
+**Rate limit:** 100 requests / 60 s (global)
+
+#### Request body — `application/json`
+
+| Field | Type | Required | Constraints |
+|---|---|---|---|
+| `fullName` | `string` | ✅ | 2–100 characters |
+| `email` | `string` | ✅ | Valid email format — must be unique |
+| `phone` | `string` | ❌ | Valid phone pattern, 7–20 chars |
+| `lga` | `string` | ❌ | Max 100 characters |
+| `interests` | `string` | ❌ | Max 500 characters |
+
+#### Example request
+
+```json
+{
+  "fullName": "Chidi Nwosu",
+  "email": "chidi@example.com",
+  "phone": "+234 803 000 0000",
+  "lga": "Enugu North",
+  "interests": "Community outreach, voter education"
+}
+```
+
+#### Success response — `201 Created`
+
+```json
+{
+  "id": "v1v2v3...",
+  "userId": null,
+  "fullName": "Chidi Nwosu",
+  "email": "chidi@example.com",
+  "phone": "+234 803 000 0000",
+  "lga": "Enugu North",
+  "interests": "Community outreach, voter education",
+  "createdAt": "2026-03-19T10:05:00.000Z",
+  "updatedAt": "2026-03-19T10:05:00.000Z"
+}
+```
+
+#### Error responses
+
+| Status | When |
+|---|---|
+| `400` | Validation failure |
+| `409` | Email already registered as a volunteer |
+
+---
+
+### 10.2 `GET /volunteers`
+
+Returns all volunteer records ordered newest first.
+
+**Auth required:** Yes
+**Roles:** `ADMIN`
+
+#### Success response — `200 OK`
+
+Array of volunteer objects — same shape as the `POST /volunteers` response.
+
+---
+
+### 10.3 `GET /volunteers/:id`
+
+Returns a single volunteer record.
+
+**Auth required:** Yes
+**Roles:** `ADMIN`
+
+#### Path parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` (UUID) | Volunteer ID |
+
+#### Success response — `200 OK`
+
+Single volunteer object.
+
+#### Error responses
+
+| Status | When |
+|---|---|
+| `404` | Volunteer not found |
+
+---
+
+### 10.4 `DELETE /volunteers/:id`
+
+Permanently deletes a volunteer record.
+
+**Auth required:** Yes
+**Roles:** `ADMIN`
+
+#### Path parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` (UUID) | Volunteer ID |
+
+#### Success response — `204 No Content`
+
+Empty body.
+
+#### Error responses
+
+| Status | When |
+|---|---|
+| `404` | Volunteer not found |
+
+---
+
+## 11. Data Models  <!-- previously section 9 -->
 
 TypeScript interfaces for use in your frontend codebase.
 
@@ -878,6 +1151,44 @@ export interface UpdatePostPayload {
   images?: File[];
 }
 
+// ─── Petitions ────────────────────────────────────────────────────────────────
+
+export interface Petition {
+  id: string;
+  topic: string;
+  constituentName: string;
+  message: string;
+  createdAt: string;            // ISO 8601
+}
+
+export interface CreatePetitionPayload {
+  topic: string;
+  constituentName: string;
+  message: string;
+}
+
+// ─── Volunteers ───────────────────────────────────────────────────────────────
+
+export interface Volunteer {
+  id: string;
+  userId: string | null;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  lga: string | null;
+  interests: string | null;
+  createdAt: string;            // ISO 8601
+  updatedAt: string;            // ISO 8601
+}
+
+export interface CreateVolunteerPayload {
+  fullName: string;
+  email: string;
+  phone?: string;
+  lga?: string;
+  interests?: string;
+}
+
 // ─── API error shape ──────────────────────────────────────────────────────────
 
 export interface ApiError {
@@ -889,7 +1200,7 @@ export interface ApiError {
 
 ---
 
-## 10. Frontend Integration Guide
+## 12. Frontend Integration Guide
 
 ### 10.1 Token management
 
@@ -1171,7 +1482,7 @@ function PostActions({ post }) {
 
 ---
 
-## 11. Environment Variables
+## 13. Environment Variables
 
 Copy `.env.example` to `.env` and fill in all values before starting the server.
 

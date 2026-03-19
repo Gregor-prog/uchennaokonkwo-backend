@@ -16,6 +16,7 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
+import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { JwtUser } from '../common/interfaces/jwt-user.interface';
@@ -26,31 +27,32 @@ import { MulterFile } from '../common/types/multer-file.type';
 /**
  * Access matrix
  * ─────────────────────────────────────────────────────
- * Action              ADMIN   MEDIA               VOLUNTEER
- * List / Get          ✓       ✓                   ✗
- * Create              ✓       ✓                   ✗
- * Update              ✓       ✓ (any post)        ✗
- * Delete              ✓ (any) ✓ (own posts only)  ✗
- * Add / Remove media  ✓ (any) ✓ (own posts only)  ✗
+ * Action              PUBLIC  ADMIN   MEDIA               VOLUNTEER
+ * List / Get          ✓       ✓       ✓                   ✓
+ * Create              ✗       ✓       ✓                   ✗
+ * Update              ✗       ✓       ✓ (any post)        ✗
+ * Delete              ✗       ✓ (any) ✓ (own posts only)  ✗
+ * Add / Remove media  ✗       ✓ (any) ✓ (own posts only)  ✗
  * ─────────────────────────────────────────────────────
  *
- * VOLUNTEER users receive 403 Forbidden on every endpoint because none
- * of the @Roles() decorators include Role.VOLUNTEER.
+ * Read endpoints are public (@Public). Write endpoints require
+ * ADMIN or MEDIA; VOLUNTEER is blocked on all write routes.
  */
 @Controller('posts')
-@Roles(Role.ADMIN, Role.MEDIA)  // ← controller-level: VOLUNTEER blocked everywhere
 export class PostsController {
   constructor(private postsService: PostsService) {}
 
-  // ─── GET /posts ───────────────────────────────────────────────────────────
+  // ─── GET /posts — public ──────────────────────────────────────────────────
 
+  @Public()
   @Get()
   findAll() {
     return this.postsService.findAll();
   }
 
-  // ─── GET /posts/:id ───────────────────────────────────────────────────────
+  // ─── GET /posts/:id — public ──────────────────────────────────────────────
 
+  @Public()
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.postsService.findOne(id);
@@ -63,6 +65,7 @@ export class PostsController {
    * Send as multipart/form-data with the field name "images" for files.
    */
   @Post()
+  @Roles(Role.ADMIN, Role.MEDIA)
   @UseInterceptors(FilesInterceptor('images', MAX_FILES_PER_REQUEST, postsMulterOptions))
   create(
     @Body() dto: CreatePostDto,
@@ -80,6 +83,7 @@ export class PostsController {
    * To remove individual media items use DELETE /posts/:id/media/:mediaId.
    */
   @Patch(':id')
+  @Roles(Role.ADMIN, Role.MEDIA)
   @UseInterceptors(FilesInterceptor('images', MAX_FILES_PER_REQUEST, postsMulterOptions))
   update(
     @Param('id') id: string,
@@ -96,6 +100,7 @@ export class PostsController {
    * MEDIA: can only delete posts they authored — service throws 403 otherwise.
    */
   @Delete(':id')
+  @Roles(Role.ADMIN, Role.MEDIA)
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id') id: string, @CurrentUser() user: JwtUser) {
     return this.postsService.remove(id, user);
@@ -108,6 +113,7 @@ export class PostsController {
    * ADMIN: any post. MEDIA: own posts only.
    */
   @Post(':id/media')
+  @Roles(Role.ADMIN, Role.MEDIA)
   @UseInterceptors(FilesInterceptor('images', MAX_FILES_PER_REQUEST, postsMulterOptions))
   addMedia(
     @Param('id') postId: string,
@@ -124,6 +130,7 @@ export class PostsController {
    * ADMIN: any post. MEDIA: own posts only.
    */
   @Delete(':id/media/:mediaId')
+  @Roles(Role.ADMIN, Role.MEDIA)
   @HttpCode(HttpStatus.NO_CONTENT)
   removeMedia(
     @Param('id') postId: string,
