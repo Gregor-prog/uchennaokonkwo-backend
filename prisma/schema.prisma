@@ -1,0 +1,130 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  MEDIA
+  VOLUNTEER
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Users {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  firstName         String
+  lastName          String
+  passwordHash      String
+  refreshTokenHash  String?   // Hashed refresh token for rotation
+  isActive          Boolean   @default(true)
+  lastLoginAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  constituentName   String?
+  profilePictureUrl String?
+  userRoles         UserRoles[]
+  posts             Posts[]
+}
+
+model UserRoles {
+  id     String @id @default(uuid())
+  userId String
+  role   Role
+  description String?
+  user   Users  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+// multilingualContent is Json and should contain this structure:
+// [
+//    {
+//      "language": "ENGLISH",
+//      "title": "Title in English",
+//      "content": "Content in English"
+//    },
+//    {
+//      "language": "YORUBA",
+//      "title": "Título en Español",
+//      "content": "Contenido en Español"
+//    }
+// ]
+
+model Posts {
+  id        String   @id @default(uuid())
+  title     String
+  subcontent String?
+  content   String
+  multilingualContent Json?
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  status   PostStatus
+  author    Users    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  Media     Media[]
+  @@index([authorId])
+}
+
+model Media {
+  id                  String   @id @default(uuid())
+  url                 String   // Cloudinary secure_url
+  cloudinaryPublicId  String?  // Needed for deletion via Cloudinary API
+  type                String
+  postId              String?
+  projectId           String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  post      Posts?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  projects   Projects? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  @@index([postId])
+}
+
+model Projects {
+  id          String   @id @default(uuid())
+  title        String
+  description String?
+  status      String
+  consituentName String
+  latitude    Float
+  longitude   Float
+  Media       Media[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// volunteers records
+model volunteers {
+  id        String   @id @default(uuid())
+  userId    String?
+  fullName      String
+  email     String   @unique
+  phone     String?
+  lga      String?
+  interests String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// townhall feedback
+model Petitions {
+  id        String   @id @default(uuid())
+  topic String
+  constituentName String
+  message   String
+  createdAt DateTime @default(now())
+}
+
