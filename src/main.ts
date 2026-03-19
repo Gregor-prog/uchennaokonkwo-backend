@@ -13,7 +13,11 @@ async function bootstrap() {
 
   // ── CORS ─────────────────────────────────────────────────────────────────
   app.enableCors({
-    origin: process.env.ALLOWED_ORIGINS?.split(',') ?? ['http://localhost:3000'],
+    origin: process.env.ALLOWED_ORIGINS?.split(',') ?? [
+      'http://localhost:3000',
+      'https://www.uchennaokonkwo.com',
+      'https://www.admin.uchennaokonkwo.com',
+    ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
@@ -35,7 +39,7 @@ async function bootstrap() {
   // ── API Prefix ───────────────────────────────────────────────────────────
   app.setGlobalPrefix('api/v1');
 
-  const port = process.env.PORT ?? 3000;
+  const port = process.env.PORT ?? 3001;
   await app.listen(port);
   console.log(`Application running on: http://localhost:${port}/api/v1`);
 }
