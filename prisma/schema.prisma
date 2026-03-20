@@ -99,8 +99,8 @@ model Projects {
   description String?
   status      String
   consituentName String
-  latitude    Float
-  longitude   Float
+  latitude    Float?
+  longitude   Float?
   Media       Media[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
