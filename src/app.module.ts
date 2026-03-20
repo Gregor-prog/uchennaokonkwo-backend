@@ -11,6 +11,7 @@ import { UsersModule } from './users/users.module';
 import { PostsModule } from './posts/posts.module';
 import { PetitionsModule } from './petitions/petitions.module';
 import { VolunteersModule } from './volunteers/volunteers.module';
+import { ProjectsModule } from './projects/projects.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
@@ -36,6 +37,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     PostsModule,
     PetitionsModule,
     VolunteersModule,
+    ProjectsModule,
   ],
   controllers: [AppController],
   providers: [

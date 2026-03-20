@@ -36,8 +36,16 @@ Complete documentation for the backend REST API. Covers authentication, posts, m
     - [GET /volunteers](#102-get-volunteers)
     - [GET /volunteers/:id](#103-get-volunteersid)
     - [DELETE /volunteers/:id](#104-delete-volunteersid)
-11. [Data Models](#11-data-models)
-12. [Frontend Integration Guide](#12-frontend-integration-guide)
+11. [Projects Endpoints](#11-projects-endpoints)
+    - [GET /projects](#111-get-projects)
+    - [GET /projects/:id](#112-get-projectsid)
+    - [POST /projects](#113-post-projects)
+    - [PATCH /projects/:id](#114-patch-projectsid)
+    - [DELETE /projects/:id](#115-delete-projectsid)
+    - [POST /projects/:id/media](#116-post-projectsidmedia)
+    - [DELETE /projects/:id/media/:mediaId](#117-delete-projectsidmediamediaid)
+12. [Data Models](#12-data-models)
+13. [Frontend Integration Guide](#13-frontend-integration-guide)
     - [Token management](#121-token-management)
     - [Axios / Fetch setup](#122-axiosfetch-setup)
     - [Auth flow](#123-auth-flow)
@@ -132,6 +140,17 @@ Three roles exist. A user can hold multiple roles.
 | List all volunteers | ❌ | ✅ | ❌ 403 | ❌ 403 |
 | Get single volunteer | ❌ | ✅ | ❌ 403 | ❌ 403 |
 | Delete volunteer | ❌ | ✅ | ❌ 403 | ❌ 403 |
+
+### Access matrix — Projects
+
+| Action | Public | ADMIN | MEDIA | VOLUNTEER |
+|---|---|---|---|---|
+| List projects | ✅ | ✅ | ✅ | ✅ |
+| Get single project | ✅ | ✅ | ✅ | ✅ |
+| Create project | ❌ | ✅ | ❌ 403 | ❌ 403 |
+| Update project | ❌ | ✅ | ❌ 403 | ❌ 403 |
+| Delete project | ❌ | ✅ | ❌ 403 | ❌ 403 |
+| Add / remove media | ❌ | ✅ | ❌ 403 | ❌ 403 |
 
 ---
 
@@ -1014,7 +1033,241 @@ Empty body.
 
 ---
 
-## 11. Data Models  <!-- previously section 9 -->
+---
+
+## 11. Projects Endpoints
+
+Constituency project records with geolocation and media. Read is public; all writes are `ADMIN` only.
+
+### 11.1 `GET /projects`
+
+Returns all projects ordered newest first.
+
+**Auth required:** No
+
+#### Success response — `200 OK`
+
+```json
+[
+  {
+    "id": "proj-uuid...",
+    "title": "Ogui Road Reconstruction",
+    "description": "Full reconstruction of the Ogui road axis.",
+    "status": "ONGOING",
+    "consituentName": "Enugu North",
+    "latitude": 6.4541,
+    "longitude": 7.5087,
+    "createdAt": "2026-03-01T08:00:00.000Z",
+    "updatedAt": "2026-03-18T10:00:00.000Z",
+    "Media": [
+      {
+        "id": "m1...",
+        "url": "https://res.cloudinary.com/your-cloud/image/upload/projects/uuid.jpg",
+        "cloudinaryPublicId": "projects/uuid",
+        "type": "image/jpeg",
+        "postId": null,
+        "projectId": "proj-uuid...",
+        "createdAt": "2026-03-01T08:00:00.000Z",
+        "updatedAt": "2026-03-01T08:00:00.000Z"
+      }
+    ]
+  }
+]
+```
+
+---
+
+### 11.2 `GET /projects/:id`
+
+Returns a single project.
+
+**Auth required:** No
+
+#### Path parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` (UUID) | Project ID |
+
+#### Success response — `200 OK`
+
+Single project object — same shape as items in `GET /projects`.
+
+#### Error responses
+
+| Status | When |
+|---|---|
+| `404` | Project not found |
+
+---
+
+### 11.3 `POST /projects`
+
+Creates a new project. Latitude and longitude are sent as form fields (strings) and coerced to numbers automatically.
+
+**Auth required:** Yes
+**Roles:** `ADMIN`
+**Content-Type:** `multipart/form-data`
+
+#### Form fields
+
+| Field | Type | Required | Constraints |
+|---|---|---|---|
+| `title` | `string` | ✅ | 3–255 characters |
+| `status` | `string` | ✅ | `PLANNED`, `ONGOING`, `COMPLETED`, or `SUSPENDED` |
+| `constituentName` | `string` | ✅ | 2–100 characters |
+| `latitude` | `number` | ✅ | Decimal degrees, −90 to 90 |
+| `longitude` | `number` | ✅ | Decimal degrees, −180 to 180 |
+| `description` | `string` | ❌ | Max 2000 characters |
+| `images` | `File[]` | ❌ | Up to 10 files, max 5 MB each. Types: `jpg`, `jpeg`, `png`, `gif`, `webp` |
+
+#### Example request (JS `FormData`)
+
+```javascript
+const form = new FormData();
+form.append('title', 'Ogui Road Reconstruction');
+form.append('status', 'ONGOING');
+form.append('constituentName', 'Enugu North');
+form.append('latitude', '6.4541');
+form.append('longitude', '7.5087');
+form.append('description', 'Full reconstruction of the Ogui road axis.');
+form.append('images', imageFile);
+
+await fetch('/api/v1/projects', {
+  method: 'POST',
+  headers: { Authorization: `Bearer ${accessToken}` },
+  body: form,
+});
+```
+
+#### Success response — `201 Created`
+
+Full project object including `Media` array.
+
+#### Error responses
+
+| Status | When |
+|---|---|
+| `400` | Validation failure, invalid coordinates, or unsupported file type |
+
+---
+
+### 11.4 `PATCH /projects/:id`
+
+Updates project fields and/or appends new images. All fields are optional.
+
+**Auth required:** Yes
+**Roles:** `ADMIN`
+**Content-Type:** `multipart/form-data`
+
+#### Path parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` (UUID) | Project ID |
+
+#### Form fields
+
+Same as `POST /projects` — all optional.
+
+#### Success response — `200 OK`
+
+Full updated project object.
+
+#### Error responses
+
+| Status | When |
+|---|---|
+| `400` | Validation failure |
+| `404` | Project not found |
+
+---
+
+### 11.5 `DELETE /projects/:id`
+
+Permanently deletes a project and all its media from Cloudinary.
+
+**Auth required:** Yes
+**Roles:** `ADMIN`
+
+#### Path parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` (UUID) | Project ID |
+
+#### Success response — `204 No Content`
+
+Empty body.
+
+#### Error responses
+
+| Status | When |
+|---|---|
+| `404` | Project not found |
+
+---
+
+### 11.6 `POST /projects/:id/media`
+
+Uploads additional images to an existing project.
+
+**Auth required:** Yes
+**Roles:** `ADMIN`
+**Content-Type:** `multipart/form-data`
+
+#### Path parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` (UUID) | Project ID |
+
+#### Form fields
+
+| Field | Type | Required | Constraints |
+|---|---|---|---|
+| `images` | `File[]` | ✅ | 1–10 files, max 5 MB each |
+
+#### Success response — `201 Created`
+
+Full project object with updated `Media` array.
+
+#### Error responses
+
+| Status | When |
+|---|---|
+| `400` | Unsupported file type or file too large |
+| `404` | Project not found |
+
+---
+
+### 11.7 `DELETE /projects/:id/media/:mediaId`
+
+Removes a single media item from a project and deletes it from Cloudinary.
+
+**Auth required:** Yes
+**Roles:** `ADMIN`
+
+#### Path parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` (UUID) | Project ID |
+| `mediaId` | `string` (UUID) | Media item ID |
+
+#### Success response — `204 No Content`
+
+Empty body.
+
+#### Error responses
+
+| Status | When |
+|---|---|
+| `404` | Project not found, or media item not found on this project |
+
+---
+
+## 12. Data Models  <!-- previously section 11 -->
 
 TypeScript interfaces for use in your frontend codebase.
 
@@ -1148,6 +1401,43 @@ export interface UpdatePostPayload {
   subcontent?: string;
   status?: PostStatus;
   multilingualContent?: MultilingualContentItem[];
+  images?: File[];
+}
+
+// ─── Projects ─────────────────────────────────────────────────────────────────
+
+export type ProjectStatus = 'PLANNED' | 'ONGOING' | 'COMPLETED' | 'SUSPENDED';
+
+export interface Project {
+  id: string;
+  title: string;
+  description: string | null;
+  status: ProjectStatus;
+  consituentName: string;       // note: schema spelling — map to constituentName in UI
+  latitude: number;
+  longitude: number;
+  createdAt: string;            // ISO 8601
+  updatedAt: string;            // ISO 8601
+  Media: MediaItem[];
+}
+
+export interface CreateProjectPayload {
+  title: string;
+  status: ProjectStatus;
+  constituentName: string;      // DTO spelling (mapped server-side)
+  latitude: number;
+  longitude: number;
+  description?: string;
+  images?: File[];
+}
+
+export interface UpdateProjectPayload {
+  title?: string;
+  status?: ProjectStatus;
+  constituentName?: string;
+  latitude?: number;
+  longitude?: number;
+  description?: string;
   images?: File[];
 }
 
