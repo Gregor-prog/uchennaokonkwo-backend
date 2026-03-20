@@ -32,12 +32,14 @@ export class CreateProjectDto {
   constituentName: string;
 
   /** Decimal degrees, e.g. 6.4541 */
+  @IsOptional()
   @Type(() => Number)
   @IsLatitude({ message: 'latitude must be a valid decimal degree between -90 and 90.' })
-  latitude: number;
+  latitude?: number;
 
   /** Decimal degrees, e.g. 7.5087 */
+  @IsOptional()
   @Type(() => Number)
   @IsLongitude({ message: 'longitude must be a valid decimal degree between -180 and 180.' })
-  longitude: number;
+  longitude?: number;
 }
