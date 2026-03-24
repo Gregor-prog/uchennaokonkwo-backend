@@ -1,13 +1,20 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
 import { CreatePetitionDto } from './dto/create-petition.dto';
 
 @Injectable()
 export class PetitionsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private mail: MailService,
+  ) {}
 
   async create(dto: CreatePetitionDto) {
-    return this.prisma.petitions.create({ data: dto });
+    const petition = await this.prisma.petitions.create({ data: dto });
+    // Fire-and-forget — mail failure does not affect the HTTP response
+    void this.mail.sendPetitionNotification(petition);
+    return petition;
   }
 
   async findAll() {
