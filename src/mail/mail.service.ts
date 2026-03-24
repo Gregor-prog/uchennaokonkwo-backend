@@ -1,29 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as nodemailer from 'nodemailer';
-import type { Transporter } from 'nodemailer';
+import { Resend } from 'resend';
 
 @Injectable()
 export class MailService {
-  private readonly transporter: Transporter;
+  private readonly resend: Resend;
+  private readonly from: string;
   private readonly recipient: string;
   private readonly logger = new Logger(MailService.name);
 
   constructor(private config: ConfigService) {
-    this.recipient = this.config.getOrThrow<string>('MAIL_RECIPIENT');
-
-    this.transporter = nodemailer.createTransport({
-      host: this.config.getOrThrow<string>('MAIL_HOST'),
-      port: this.config.get<number>('MAIL_PORT', 587),
-      secure: this.config.get<boolean>('MAIL_SECURE', false), // true for port 465
-      auth: {
-        user: this.config.getOrThrow<string>('MAIL_USER'),
-        pass: this.config.getOrThrow<string>('MAIL_PASSWORD'),
-      },
-    });
+    this.resend    = new Resend(this.config.getOrThrow<string>('RESEND_API_KEY'));
+    this.from      = this.config.get<string>('MAIL_FROM', 'Okonkwo Portal <notifications@uchennaokonkwo.com>');
+    this.recipient = this.config.get<string>('MAIL_RECIPIENT', 'kinguchennaokonkwo@gmail.com');
   }
 
-  // ─── Public send helpers ──────────────────────────────────────────────────
+  // ─── Public helpers ───────────────────────────────────────────────────────
 
   async sendPetitionNotification(petition: {
     id: string;
@@ -35,32 +27,31 @@ export class MailService {
     const subject = `[Petition] ${petition.topic}`;
 
     const html = `
-      <div style="font-family:sans-serif;max-width:600px;margin:auto">
-        <h2 style="color:#1a1a1a">New Petition Received</h2>
-        <table style="width:100%;border-collapse:collapse">
+      <div style="font-family:sans-serif;max-width:600px;margin:auto;color:#1a1a1a">
+        <h2 style="border-bottom:2px solid #e5e7eb;padding-bottom:8px">New Petition Received</h2>
+        <table style="width:100%;border-collapse:collapse;font-size:14px">
           <tr>
-            <td style="padding:8px;font-weight:bold;width:160px;background:#f5f5f5">Reference ID</td>
-            <td style="padding:8px">${petition.id}</td>
+            <td style="padding:10px 12px;font-weight:600;width:160px;background:#f9fafb;border:1px solid #e5e7eb">Reference ID</td>
+            <td style="padding:10px 12px;border:1px solid #e5e7eb;font-family:monospace">${petition.id}</td>
           </tr>
           <tr>
-            <td style="padding:8px;font-weight:bold;background:#f5f5f5">Topic</td>
-            <td style="padding:8px">${this._escape(petition.topic)}</td>
+            <td style="padding:10px 12px;font-weight:600;background:#f9fafb;border:1px solid #e5e7eb">Topic</td>
+            <td style="padding:10px 12px;border:1px solid #e5e7eb">${this._escape(petition.topic)}</td>
           </tr>
           <tr>
-            <td style="padding:8px;font-weight:bold;background:#f5f5f5">From</td>
-            <td style="padding:8px">${this._escape(petition.constituentName)}</td>
+            <td style="padding:10px 12px;font-weight:600;background:#f9fafb;border:1px solid #e5e7eb">From</td>
+            <td style="padding:10px 12px;border:1px solid #e5e7eb">${this._escape(petition.constituentName)}</td>
           </tr>
           <tr>
-            <td style="padding:8px;font-weight:bold;background:#f5f5f5">Submitted</td>
-            <td style="padding:8px">${petition.createdAt.toUTCString()}</td>
+            <td style="padding:10px 12px;font-weight:600;background:#f9fafb;border:1px solid #e5e7eb">Submitted</td>
+            <td style="padding:10px 12px;border:1px solid #e5e7eb">${petition.createdAt.toUTCString()}</td>
           </tr>
           <tr>
-            <td style="padding:8px;font-weight:bold;vertical-align:top;background:#f5f5f5">Message</td>
-            <td style="padding:8px;white-space:pre-wrap">${this._escape(petition.message)}</td>
+            <td style="padding:10px 12px;font-weight:600;vertical-align:top;background:#f9fafb;border:1px solid #e5e7eb">Message</td>
+            <td style="padding:10px 12px;border:1px solid #e5e7eb;white-space:pre-wrap;line-height:1.6">${this._escape(petition.message)}</td>
           </tr>
         </table>
-      </div>
-    `;
+      </div>`;
 
     await this._send(subject, html);
   }
@@ -81,32 +72,29 @@ export class MailService {
     const color = badgeColor[feedback.type] ?? '#6b7280';
 
     const html = `
-      <div style="font-family:sans-serif;max-width:600px;margin:auto">
-        <h2 style="color:#1a1a1a">New Feedback Received</h2>
-        <table style="width:100%;border-collapse:collapse">
+      <div style="font-family:sans-serif;max-width:600px;margin:auto;color:#1a1a1a">
+        <h2 style="border-bottom:2px solid #e5e7eb;padding-bottom:8px">New Feedback Received</h2>
+        <table style="width:100%;border-collapse:collapse;font-size:14px">
           <tr>
-            <td style="padding:8px;font-weight:bold;width:160px;background:#f5f5f5">Reference ID</td>
-            <td style="padding:8px">${feedback.id}</td>
+            <td style="padding:10px 12px;font-weight:600;width:160px;background:#f9fafb;border:1px solid #e5e7eb">Reference ID</td>
+            <td style="padding:10px 12px;border:1px solid #e5e7eb;font-family:monospace">${feedback.id}</td>
           </tr>
           <tr>
-            <td style="padding:8px;font-weight:bold;background:#f5f5f5">Type</td>
-            <td style="padding:8px">
-              <span style="background:${color};color:#fff;padding:2px 10px;border-radius:12px;font-size:13px">
-                ${feedback.type}
-              </span>
+            <td style="padding:10px 12px;font-weight:600;background:#f9fafb;border:1px solid #e5e7eb">Type</td>
+            <td style="padding:10px 12px;border:1px solid #e5e7eb">
+              <span style="background:${color};color:#fff;padding:3px 12px;border-radius:12px;font-size:12px;font-weight:600">${feedback.type}</span>
             </td>
           </tr>
           <tr>
-            <td style="padding:8px;font-weight:bold;background:#f5f5f5">Submitted</td>
-            <td style="padding:8px">${feedback.createdAt.toUTCString()}</td>
+            <td style="padding:10px 12px;font-weight:600;background:#f9fafb;border:1px solid #e5e7eb">Submitted</td>
+            <td style="padding:10px 12px;border:1px solid #e5e7eb">${feedback.createdAt.toUTCString()}</td>
           </tr>
           <tr>
-            <td style="padding:8px;font-weight:bold;vertical-align:top;background:#f5f5f5">Message</td>
-            <td style="padding:8px;white-space:pre-wrap">${this._escape(feedback.message)}</td>
+            <td style="padding:10px 12px;font-weight:600;vertical-align:top;background:#f9fafb;border:1px solid #e5e7eb">Message</td>
+            <td style="padding:10px 12px;border:1px solid #e5e7eb;white-space:pre-wrap;line-height:1.6">${this._escape(feedback.message)}</td>
           </tr>
         </table>
-      </div>
-    `;
+      </div>`;
 
     await this._send(subject, html);
   }
@@ -115,19 +103,22 @@ export class MailService {
 
   private async _send(subject: string, html: string): Promise<void> {
     try {
-      await this.transporter.sendMail({
-        from: `"Okonkwo Portal" <${this.config.getOrThrow('MAIL_USER')}>`,
-        to: this.recipient,
+      const { error } = await this.resend.emails.send({
+        from:    this.from,
+        to:      this.recipient,
         subject,
         html,
       });
+
+      if (error) {
+        this.logger.error(`Resend API error for "${subject}": ${error.message}`);
+      }
     } catch (err) {
-      // Log but do not throw — a mail failure must never break the HTTP response
-      this.logger.error(`Failed to send email "${subject}": ${(err as Error).message}`);
+      // Never let mail failure crash the request
+      this.logger.error(`Failed to send "${subject}": ${(err as Error).message}`);
     }
   }
 
-  /** Prevent HTML injection from user-supplied content. */
   private _escape(str: string): string {
     return str
       .replace(/&/g, '&amp;')
