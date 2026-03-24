@@ -23,6 +23,11 @@ enum PostStatus {
   PUBLISHED
   ARCHIVED
 }
+enum feedbackType {
+  SUGGESTION
+  COMPLIMENT
+  CRITICISM
+}
 
 model Users {
   id                String    @id @default(uuid())
@@ -128,3 +133,10 @@ model Petitions {
   createdAt DateTime @default(now())
 }
 
+
+model Feedback {
+  id       String   @id @default(uuid())
+  type     feedbackType
+  message   String
+  createdAt DateTime @default(now())
+}
