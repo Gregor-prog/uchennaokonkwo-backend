@@ -19,8 +19,10 @@ import { UpdateProjectDto } from './dto/update-project.dto';
 import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
-import { projectsMulterOptions, MAX_FILES_PER_REQUEST } from '../common/config/multer.config';
-
+import {
+  projectsMulterOptions,
+  MAX_FILES_PER_REQUEST,
+} from '../common/config/multer.config';
 
 /**
  * Access matrix
@@ -65,7 +67,9 @@ export class ProjectsController {
    */
   @Post()
   @Roles(Role.ADMIN)
-  @UseInterceptors(FilesInterceptor('images', MAX_FILES_PER_REQUEST, projectsMulterOptions))
+  @UseInterceptors(
+    FilesInterceptor('images', MAX_FILES_PER_REQUEST, projectsMulterOptions),
+  )
   create(
     @Body() dto: CreateProjectDto,
     @UploadedFiles() files: Express.Multer.File[] = [],
@@ -82,7 +86,9 @@ export class ProjectsController {
    */
   @Patch(':id')
   @Roles(Role.ADMIN)
-  @UseInterceptors(FilesInterceptor('images', MAX_FILES_PER_REQUEST, projectsMulterOptions))
+  @UseInterceptors(
+    FilesInterceptor('images', MAX_FILES_PER_REQUEST, projectsMulterOptions),
+  )
   update(
     @Param('id') id: string,
     @Body() dto: UpdateProjectDto,
@@ -104,7 +110,9 @@ export class ProjectsController {
 
   @Post(':id/media')
   @Roles(Role.ADMIN)
-  @UseInterceptors(FilesInterceptor('images', MAX_FILES_PER_REQUEST, projectsMulterOptions))
+  @UseInterceptors(
+    FilesInterceptor('images', MAX_FILES_PER_REQUEST, projectsMulterOptions),
+  )
   addMedia(
     @Param('id') projectId: string,
     @UploadedFiles() files: Express.Multer.File[] = [],
