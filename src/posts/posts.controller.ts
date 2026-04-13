@@ -21,8 +21,10 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { JwtUser } from '../common/interfaces/jwt-user.interface';
 import { Role } from '../common/enums/role.enum';
-import { postsMulterOptions, MAX_FILES_PER_REQUEST } from '../common/config/multer.config';
-import { MulterFile } from '../common/types/multer-file.type';
+import {
+  postsMulterOptions,
+  MAX_FILES_PER_REQUEST,
+} from '../common/config/multer.config';
 
 /**
  * Access matrix
@@ -66,11 +68,13 @@ export class PostsController {
    */
   @Post()
   @Roles(Role.ADMIN, Role.MEDIA)
-  @UseInterceptors(FilesInterceptor('images', MAX_FILES_PER_REQUEST, postsMulterOptions))
+  @UseInterceptors(
+    FilesInterceptor('images', MAX_FILES_PER_REQUEST, postsMulterOptions),
+  )
   create(
     @Body() dto: CreatePostDto,
     @CurrentUser() user: JwtUser,
-    @UploadedFiles() files: MulterFile[] = [],
+    @UploadedFiles() files: Express.Multer.File[] = [],
   ) {
     return this.postsService.create(dto, user.id, files ?? []);
   }
@@ -84,11 +88,13 @@ export class PostsController {
    */
   @Patch(':id')
   @Roles(Role.ADMIN, Role.MEDIA)
-  @UseInterceptors(FilesInterceptor('images', MAX_FILES_PER_REQUEST, postsMulterOptions))
+  @UseInterceptors(
+    FilesInterceptor('images', MAX_FILES_PER_REQUEST, postsMulterOptions),
+  )
   update(
     @Param('id') id: string,
     @Body() dto: UpdatePostDto,
-    @UploadedFiles() files: MulterFile[] = [],
+    @UploadedFiles() files: Express.Multer.File[] = [],
   ) {
     return this.postsService.update(id, dto, files ?? []);
   }
@@ -114,11 +120,13 @@ export class PostsController {
    */
   @Post(':id/media')
   @Roles(Role.ADMIN, Role.MEDIA)
-  @UseInterceptors(FilesInterceptor('images', MAX_FILES_PER_REQUEST, postsMulterOptions))
+  @UseInterceptors(
+    FilesInterceptor('images', MAX_FILES_PER_REQUEST, postsMulterOptions),
+  )
   addMedia(
     @Param('id') postId: string,
     @CurrentUser() user: JwtUser,
-    @UploadedFiles() files: MulterFile[] = [],
+    @UploadedFiles() files: Express.Multer.File[] = [],
   ) {
     return this.postsService.addMedia(postId, files ?? [], user);
   }

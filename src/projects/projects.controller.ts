@@ -20,7 +20,7 @@ import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
 import { projectsMulterOptions, MAX_FILES_PER_REQUEST } from '../common/config/multer.config';
-import { MulterFile } from '../common/types/multer-file.type';
+
 
 /**
  * Access matrix
@@ -68,7 +68,7 @@ export class ProjectsController {
   @UseInterceptors(FilesInterceptor('images', MAX_FILES_PER_REQUEST, projectsMulterOptions))
   create(
     @Body() dto: CreateProjectDto,
-    @UploadedFiles() files: MulterFile[] = [],
+    @UploadedFiles() files: Express.Multer.File[] = [],
   ) {
     return this.projectsService.create(dto, files ?? []);
   }
@@ -86,7 +86,7 @@ export class ProjectsController {
   update(
     @Param('id') id: string,
     @Body() dto: UpdateProjectDto,
-    @UploadedFiles() files: MulterFile[] = [],
+    @UploadedFiles() files: Express.Multer.File[] = [],
   ) {
     return this.projectsService.update(id, dto, files ?? []);
   }
@@ -107,7 +107,7 @@ export class ProjectsController {
   @UseInterceptors(FilesInterceptor('images', MAX_FILES_PER_REQUEST, projectsMulterOptions))
   addMedia(
     @Param('id') projectId: string,
-    @UploadedFiles() files: MulterFile[] = [],
+    @UploadedFiles() files: Express.Multer.File[] = [],
   ) {
     return this.projectsService.addMedia(projectId, files ?? []);
   }

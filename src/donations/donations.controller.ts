@@ -13,6 +13,8 @@ import { CreateDonationDto } from './dto/create-donation.dto';
 import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { UploadedFile, UseInterceptors } from '@nestjs/common';
 
 /**
  * Access matrix
@@ -30,8 +32,16 @@ export class DonationsController {
   @Public()
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() dto: CreateDonationDto) {
-    return this.donationsService.create(dto);
+  @UseInterceptors(
+    FileInterceptor('image', {
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB limit
+    }),
+  )
+  create(
+    @Body() dto: CreateDonationDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.donationsService.create(dto, file);
   }
 
   // ─── GET /donations — admin only ──────────────────────────────────────────

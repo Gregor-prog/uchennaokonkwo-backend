@@ -140,3 +140,13 @@ model Feedback {
   message   String
   createdAt DateTime @default(now())
 }
+
+model Donators {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   
+  amount    Float
+  ImageUrl String?
+  purpose   String?
+  createdAt DateTime @default(now())
+}

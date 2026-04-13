@@ -1,13 +1,9 @@
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
-import { MulterFile } from '../common/types/multer-file.type';
 
 @Injectable()
 export class ProjectsService {
@@ -36,7 +32,7 @@ export class ProjectsService {
 
   // ─── Create ───────────────────────────────────────────────────────────────
 
-  async create(dto: CreateProjectDto, files: MulterFile[]) {
+  async create(dto: CreateProjectDto, files: Express.Multer.File[]) {
     const { constituentName, ...rest } = dto;
 
     return this.prisma.projects.create({
@@ -60,7 +56,11 @@ export class ProjectsService {
 
   // ─── Update ───────────────────────────────────────────────────────────────
 
-  async update(id: string, dto: UpdateProjectDto, files: MulterFile[]) {
+  async update(
+    id: string,
+    dto: UpdateProjectDto,
+    files: Express.Multer.File[],
+  ) {
     await this.findOne(id);
 
     const { constituentName, ...rest } = dto;
@@ -69,7 +69,9 @@ export class ProjectsService {
       where: { id },
       data: {
         ...rest,
-        ...(constituentName !== undefined && { consituentName: constituentName }),
+        ...(constituentName !== undefined && {
+          consituentName: constituentName,
+        }),
         ...(files.length > 0 && {
           Media: {
             create: files.map((f) => ({
@@ -89,7 +91,9 @@ export class ProjectsService {
   async remove(id: string) {
     await this.findOne(id);
 
-    const mediaItems = await this.prisma.media.findMany({ where: { projectId: id } });
+    const mediaItems = await this.prisma.media.findMany({
+      where: { projectId: id },
+    });
 
     await this.prisma.projects.delete({ where: { id } });
 
@@ -102,7 +106,7 @@ export class ProjectsService {
 
   // ─── Media management ─────────────────────────────────────────────────────
 
-  async addMedia(projectId: string, files: MulterFile[]) {
+  async addMedia(projectId: string, files: Express.Multer.File[]) {
     await this.findOne(projectId);
 
     return this.prisma.projects.update({
@@ -127,7 +131,8 @@ export class ProjectsService {
       where: { id: mediaId, projectId },
     });
 
-    if (!media) throw new NotFoundException('Media item not found on this project.');
+    if (!media)
+      throw new NotFoundException('Media item not found on this project.');
 
     await this.prisma.media.delete({ where: { id: mediaId } });
 

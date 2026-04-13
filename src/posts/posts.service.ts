@@ -11,7 +11,6 @@ import { Role } from '../common/enums/role.enum';
 import { PostStatus } from '../common/enums/post-status.enum';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
-import { MulterFile } from '../common/types/multer-file.type';
 
 /** Fields exposed for the post author — never leak passwordHash etc. */
 const AUTHOR_SELECT = {
@@ -58,7 +57,7 @@ export class PostsService {
   async create(
     dto: CreatePostDto,
     authorId: string,
-    files: MulterFile[],
+    files: Express.Multer.File[],
   ) {
     const { multilingualContent, ...fields } = dto;
 
@@ -72,7 +71,7 @@ export class PostsService {
         ...(files.length > 0 && {
           Media: {
             create: files.map((f) => ({
-              url: f.path,                 // Cloudinary secure_url
+              url: f.path, // Cloudinary secure_url
               cloudinaryPublicId: f.filename, // Cloudinary public_id
               type: f.mimetype,
             })),
@@ -88,11 +87,7 @@ export class PostsService {
 
   // ─── Update ───────────────────────────────────────────────────────────────
 
-  async update(
-    id: string,
-    dto: UpdatePostDto,
-    files: MulterFile[],
-  ) {
+  async update(id: string, dto: UpdatePostDto, files: Express.Multer.File[]) {
     await this.findOne(id);
 
     const { multilingualContent, ...fields } = dto;
@@ -102,7 +97,9 @@ export class PostsService {
       data: {
         ...fields,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ...(multilingualContent !== undefined && { multilingualContent: multilingualContent as any }),
+        ...(multilingualContent !== undefined && {
+          multilingualContent: multilingualContent as any,
+        }),
         ...(files.length > 0 && {
           Media: {
             create: files.map((f) => ({
@@ -134,7 +131,9 @@ export class PostsService {
     }
 
     // Collect public IDs before the cascade delete wipes the Media rows
-    const mediaItems = await this.prisma.media.findMany({ where: { postId: id } });
+    const mediaItems = await this.prisma.media.findMany({
+      where: { postId: id },
+    });
 
     await this.prisma.posts.delete({ where: { id } });
 
@@ -152,11 +151,13 @@ export class PostsService {
    * Uploads additional images to an existing post.
    * ADMIN: any post. MEDIA: own posts only.
    */
-  async addMedia(postId: string, files: MulterFile[], user: JwtUser) {
+  async addMedia(postId: string, files: Express.Multer.File[], user: JwtUser) {
     const post = await this.findOne(postId);
 
     if (!user.roles.includes(Role.ADMIN) && post.authorId !== user.id) {
-      throw new ForbiddenException('You can only add media to posts you created.');
+      throw new ForbiddenException(
+        'You can only add media to posts you created.',
+      );
     }
 
     return this.prisma.posts.update({
@@ -182,14 +183,17 @@ export class PostsService {
     const post = await this.findOne(postId);
 
     if (!user.roles.includes(Role.ADMIN) && post.authorId !== user.id) {
-      throw new ForbiddenException('You can only remove media from posts you created.');
+      throw new ForbiddenException(
+        'You can only remove media from posts you created.',
+      );
     }
 
     const media = await this.prisma.media.findFirst({
       where: { id: mediaId, postId },
     });
 
-    if (!media) throw new NotFoundException('Media item not found on this post.');
+    if (!media)
+      throw new NotFoundException('Media item not found on this post.');
 
     await this.prisma.media.delete({ where: { id: mediaId } });
 
