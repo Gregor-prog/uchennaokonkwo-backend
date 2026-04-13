@@ -13,6 +13,7 @@ import { PetitionsModule } from './petitions/petitions.module';
 import { VolunteersModule } from './volunteers/volunteers.module';
 import { ProjectsModule } from './projects/projects.module';
 import { FeedbackModule } from './feedback/feedback.module';
+import { DonationsModule } from './donations/donations.module';
 import { MailModule } from './mail/mail.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -42,6 +43,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     VolunteersModule,
     ProjectsModule,
     FeedbackModule,
+    DonationsModule,
   ],
   controllers: [AppController],
   providers: [
